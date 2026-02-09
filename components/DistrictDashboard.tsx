@@ -179,7 +179,7 @@ export default function DistrictDashboard() {
             },
             y: {
               grid: { display: false },
-              ticks: { font: { size: 12, weight: '500' } },
+              ticks: { font: { size: 12, weight: 'bold' } }
             },
           },
         },
