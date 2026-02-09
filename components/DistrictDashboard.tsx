@@ -1,10 +1,9 @@
-tsx'use client'
+'use client'
 
 import { useEffect, useRef } from 'react'
 import Chart from 'chart.js/auto'
 import { PATHWAYS, ROOT_CAUSES } from '@/lib/supabase'
 
-// PATHWAY COLORS - Blues palette (journey/progression)
 const pathwayColors: Record<string, string> = {
   'prioritization': '#0D47A1',
   'rationalization': '#1976D2',
@@ -13,7 +12,6 @@ const pathwayColors: Record<string, string> = {
   're-engagement': '#5C6BC0',
 }
 
-// ROOT CAUSE COLORS - Purples palette (challenges)
 const rootCauseColors: string[] = [
   '#6A1B9A',
   '#7B1FA2',
@@ -25,7 +23,6 @@ const rootCauseColors: string[] = [
   '#E1BEE7',
 ]
 
-// SUPPORT MODALITY COLORS - Teals palette (helping activities)
 const supportModalityColors: string[] = [
   '#00695C',
   '#00897B',
@@ -173,7 +170,6 @@ export default function DistrictDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
           <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">District</div>
@@ -184,16 +180,15 @@ export default function DistrictDashboard() {
           <div className="text-2xl font-bold text-epic-navy">{sampleDistrictData.totalSites}</div>
         </div>
         <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Sites ≥4 Indicators at Target</div>
+          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Sites at Target</div>
           <div className="text-2xl font-bold text-status-optimal">{sampleDistrictData.sitesAtTarget} / {sampleDistrictData.totalSites}</div>
         </div>
         <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Support Hours (Q1)</div>
+          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Support Hours</div>
           <div className="text-2xl font-bold text-epic-primary">{sampleDistrictData.supportDelivered.totalHours}</div>
         </div>
       </div>
 
-      {/* Pathway Distribution */}
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
         <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Pathway Distribution</h3>
         <div className="flex gap-2 h-10 rounded-lg overflow-hidden">
@@ -224,9 +219,8 @@ export default function DistrictDashboard() {
         </div>
       </div>
 
-      {/* Performance Stacks */}
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Performance by Indicator (All Sites)</h3>
+        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Performance by Indicator</h3>
         <div className="space-y-3">
           {sampleDistrictData.performanceStacks.map((ind) => (
             <div key={ind.indicator} className="flex items-center gap-3">
@@ -250,26 +244,21 @@ export default function DistrictDashboard() {
         </div>
       </div>
 
-      {/* Charts Row */}
       <div className="grid md:grid-cols-2 gap-6">
-        {/* Support Donut */}
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
           <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Support by Modality</h3>
           <div className="h-52">
             <canvas ref={donutRef}></canvas>
           </div>
         </div>
-
-        {/* Root Causes Bar */}
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Root Causes (Sites Affected)</h3>
+          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Root Causes</h3>
           <div className="h-52">
             <canvas ref={barRef}></canvas>
           </div>
         </div>
       </div>
 
-      {/* Mentors */}
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
         <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Mentor Activity</h3>
         <div className="grid md:grid-cols-3 gap-4">
@@ -295,7 +284,6 @@ export default function DistrictDashboard() {
         </div>
       </div>
 
-      {/* Escalations */}
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
         <div className="flex justify-between items-center mb-2">
           <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">System-Level Escalations</span>
