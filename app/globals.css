@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --epic-primary: #5B8FAD;
+  --epic-red: #E63946;
+  --epic-navy: #1D3557;
+  --epic-light-blue: #D6E8F0;
+  --epic-gray: #808080;
+  --epic-light-gray: #C4C4C4;
+  --status-optimal: #2E7D32;
+  --status-effective: #7CB342;
+  --status-improving: #FFA726;
+  --status-sub: #FF8A65;
+  --status-stressed: #E63946;
+}
+
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+/* Status colors */
+.status-optimal { background-color: var(--status-optimal); }
+.status-effective { background-color: var(--status-effective); }
+.status-improving { background-color: var(--status-improving); }
+.status-sub-improving { background-color: var(--status-sub); }
+.status-stressed { background-color: var(--status-stressed); }
+
+.text-status-optimal { color: var(--status-optimal); }
+.text-status-effective { color: var(--status-effective); }
+.text-status-improving { color: var(--status-improving); }
+.text-status-sub-improving { color: var(--status-sub); }
+.text-status-stressed { color: var(--status-stressed); }
+
+/* Pathway colors */
+.pathway-prioritization { background-color: var(--epic-red); }
+.pathway-rationalization { background-color: var(--status-improving); }
+.pathway-transition-ready { background-color: var(--status-effective); }
+.pathway-graduation { background-color: var(--status-optimal); }
+.pathway-re-engagement { background-color: var(--epic-primary); }
