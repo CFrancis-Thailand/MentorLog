@@ -164,7 +164,7 @@ export const PROVINCES = Array.from(new Set(SITES.map(s => s.province))).sort()
 // Get districts by province
 export const getDistrictsByProvince = (province: string): string[] => {
   if (!province) return []
-  return Array.from(new Set(SITES.filter(s => s.province === province).map(s => s.district).sort()
+  return Array.from(new Set(SITES.filter(s => s.province === province).map(s => s.district))).sort()
 }
 
 // Get facility types available for filters
@@ -172,7 +172,7 @@ export const getFacilityTypes = (province?: string, district?: string): string[]
   let filtered = SITES
   if (province) filtered = filtered.filter(s => s.province === province)
   if (district) filtered = filtered.filter(s => s.district === district)
-  return Array.from(new Set(filtered.map(s => s.facilityType).sort()
+  return Array.from(new Set(filtered.map(s => s.facilityType))).sort()
 }
 
 // Get filtered sites
