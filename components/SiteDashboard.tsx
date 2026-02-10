@@ -10,8 +10,14 @@ import {
   getIndicatorStatus,
   type PerformanceStatus
 } from '@/lib/supabase'
+import type { Language, Translations } from '@/app/page'
 
 Chart.register(...registerables)
+
+interface SiteDashboardProps {
+  language: Language
+  translations: Translations
+}
 
 // Sample data - in production this would come from Supabase
 const sampleSiteData = {
@@ -114,7 +120,7 @@ const targetPositions: Record<string, number> = {
   '6.1': 86,
 }
 
-export default function SiteDashboard() {
+export default function SiteDashboard({ language, translations: t }: SiteDashboardProps) {
   const chartRef = useRef<HTMLCanvasElement>(null)
   const chartInstance = useRef<Chart | null>(null)
 

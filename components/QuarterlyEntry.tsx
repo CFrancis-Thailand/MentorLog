@@ -3,16 +3,30 @@
 import { useState, useEffect } from 'react'
 import { 
   THRESHOLDS, 
-  INDICATOR_NAMES, 
-  INDICATOR_DESCRIPTIONS,
   PATHWAYS,
   getIndicatorStatus,
   type PerformanceStatus 
 } from '@/lib/supabase'
+import {
+  SITES,
+  PROVINCES,
+  getDistrictsByProvince,
+  getFacilityTypes,
+  getFilteredSites,
+  getSiteById,
+  type Site
+} from '@/lib/sites'
+import type { Language, Translations } from '@/app/page'
+
+interface QuarterlyEntryProps {
+  language: Language
+  translations: Translations
+}
 
 interface IndicatorValue {
   value: string
   status: PerformanceStatus | null
+  isNA: boolean
 }
 
 const statusColors: Record<PerformanceStatus, string> = {
@@ -31,31 +45,161 @@ const statusBadgeColors: Record<PerformanceStatus, string> = {
   'stressed': 'bg-status-stressed',
 }
 
-const statusLabels: Record<PerformanceStatus, string> = {
-  'optimal': 'Optimal',
-  'effective': 'Effective',
-  'improving': 'Improving',
-  'sub-improving': 'Sub',
-  'stressed': 'Stressed',
-}
-
-export default function QuarterlyEntry() {
-  const [selectedSite, setSelectedSite] = useState('')
-  const [selectedQuarter, setSelectedQuarter] = useState('2025-Q1')
-  const [siteType, setSiteType] = useState('puskesmas')
-  const [patientCount, setPatientCount] = useState('342')
+export default function QuarterlyEntry({ language, translations: t }: QuarterlyEntryProps) {
+  // Site selection filters
+  const [selectedProvince, setSelectedProvince] = useState('')
+  const [selectedDistrict, setSelectedDistrict] = useState('')
+  const [selectedFacilityType, setSelectedFacilityType] = useState('')
+  const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null)
+  
+  // Derived filter options
+  const [availableDistricts, setAvailableDistricts] = useState<string[]>([])
+  const [availableFacilityTypes, setAvailableFacilityTypes] = useState<string[]>([])
+  const [availableSites, setAvailableSites] = useState<Site[]>([])
+  
+  // Other form fields
+  const [selectedFYQuarter, setSelectedFYQuarter] = useState('Q2') // Default to current quarter
+  const [selectedFY, setSelectedFY] = useState('26') // Default to FY26
+  const [patientCount, setPatientCount] = useState('')
   const [selectedPathway, setSelectedPathway] = useState('')
-  const [selectedMentor, setSelectedMentor] = useState('')
+  const [selectedMentors, setSelectedMentors] = useState<string[]>([])
   const [showThresholds, setShowThresholds] = useState(false)
   
+  // Mentor management
+  const [mentors, setMentors] = useState([
+    { id: 'aulia', name: 'Aulia Human' },
+    { id: 'kurnia', name: 'Kurnia Baraq' },
+    { id: 'dian', name: 'Dian Agrianti' },
+    { id: 'tubagus', name: 'Tubagus Rohman' },
+    { id: 'eugenia', name: 'Eugenia Jasmine' },
+    { id: 'gladys', name: 'Gladys Octavia' },
+    { id: 'chaterine', name: 'Chaterine Tauran' },
+  ])
+  const [showAddMentor, setShowAddMentor] = useState(false)
+  const [newMentorName, setNewMentorName] = useState('')
+  
+  const handleMentorToggle = (mentorId: string) => {
+    setSelectedMentors(prev => 
+      prev.includes(mentorId)
+        ? prev.filter(id => id !== mentorId)
+        : [...prev, mentorId]
+    )
+  }
+  
+  const handleAddMentor = () => {
+    if (newMentorName.trim()) {
+      const newId = newMentorName.toLowerCase().replace(/\s+/g, '-')
+      setMentors(prev => [...prev, { id: newId, name: newMentorName.trim() }])
+      setSelectedMentors(prev => [...prev, newId])
+      setNewMentorName('')
+      setShowAddMentor(false)
+    }
+  }
+  
   const [indicators, setIndicators] = useState<Record<string, IndicatorValue>>({
-    '1.1': { value: '', status: null },
-    '2.1': { value: '', status: null },
-    '3.1': { value: '', status: null },
-    '4.1': { value: '', status: null },
-    '5.1': { value: '', status: null },
-    '6.1': { value: '', status: null },
+    '1.1': { value: '', status: null, isNA: false },
+    '2.1': { value: '', status: null, isNA: false },
+    '3.1': { value: '', status: null, isNA: false },
+    '4.1': { value: '', status: null, isNA: false },
+    '5.1': { value: '', status: null, isNA: false },
+    '6.1': { value: '', status: null, isNA: false },
   })
+
+  // Update available districts when province changes
+  useEffect(() => {
+    if (selectedProvince) {
+      setAvailableDistricts(getDistrictsByProvince(selectedProvince))
+    } else {
+      setAvailableDistricts([])
+    }
+    setSelectedDistrict('')
+    setSelectedFacilityType('')
+    setSelectedSiteId(null)
+  }, [selectedProvince])
+
+  // Update available facility types when district changes
+  useEffect(() => {
+    setAvailableFacilityTypes(getFacilityTypes(selectedProvince, selectedDistrict))
+    setSelectedFacilityType('')
+    setSelectedSiteId(null)
+  }, [selectedProvince, selectedDistrict])
+
+  // Update available sites when filters change
+  useEffect(() => {
+    setAvailableSites(getFilteredSites(selectedProvince, selectedDistrict, selectedFacilityType))
+    setSelectedSiteId(null)
+  }, [selectedProvince, selectedDistrict, selectedFacilityType])
+
+  // Get selected site object
+  const selectedSite = selectedSiteId ? getSiteById(selectedSiteId) : null
+
+  // Get translated indicator names
+  const getIndicatorName = (key: string) => {
+    const map: Record<string, keyof Translations> = {
+      '1.1': 'ind_1_1',
+      '2.1': 'ind_2_1',
+      '3.1': 'ind_3_1',
+      '4.1': 'ind_4_1',
+      '5.1': 'ind_5_1',
+      '6.1': 'ind_6_1',
+    }
+    return t[map[key]] || key
+  }
+
+  const getIndicatorDesc = (key: string) => {
+    const map: Record<string, keyof Translations> = {
+      '1.1': 'ind_1_1_desc',
+      '2.1': 'ind_2_1_desc',
+      '3.1': 'ind_3_1_desc',
+      '4.1': 'ind_4_1_desc',
+      '5.1': 'ind_5_1_desc',
+      '6.1': 'ind_6_1_desc',
+    }
+    return t[map[key]] || ''
+  }
+
+  const getStatusLabel = (status: PerformanceStatus) => {
+    const map: Record<PerformanceStatus, keyof Translations> = {
+      'optimal': 'optimal',
+      'effective': 'effective',
+      'improving': 'improving',
+      'sub-improving': 'subImproving',
+      'stressed': 'stressed',
+    }
+    return t[map[status]]
+  }
+
+  const getPathwayName = (key: string) => {
+    const map: Record<string, keyof Translations> = {
+      'prioritization': 'prioritization',
+      'rationalization': 'rationalization',
+      'transition-ready': 'transitionReady',
+      'graduation': 'graduation',
+      're-engagement': 'reengagement',
+    }
+    return t[map[key]] || key
+  }
+
+  const getPathwayDesc = (key: string) => {
+    const map: Record<string, keyof Translations> = {
+      'prioritization': 'prioritizationDesc',
+      'rationalization': 'rationalizationDesc',
+      'transition-ready': 'transitionReadyDesc',
+      'graduation': 'graduationDesc',
+      're-engagement': 'reengagementDesc',
+    }
+    return t[map[key]] || ''
+  }
+
+  // Translate facility type
+  const getFacilityTypeLabel = (type: string) => {
+    const map: Record<string, { en: string; id: string }> = {
+      'Puskesmas': { en: 'Puskesmas', id: 'Puskesmas' },
+      'Hospital': { en: 'Hospital', id: 'Rumah Sakit' },
+      'NGO clinic': { en: 'NGO Clinic', id: 'Klinik LSM' },
+    }
+    return map[type]?.[language] || type
+  }
 
   const handleIndicatorChange = (indicator: string, value: string) => {
     const numValue = value === '' ? null : parseFloat(value)
@@ -63,143 +207,297 @@ export default function QuarterlyEntry() {
     
     setIndicators(prev => ({
       ...prev,
-      [indicator]: { value, status }
+      [indicator]: { ...prev[indicator], value, status }
     }))
   }
 
-  const countAtTarget = Object.values(indicators).filter(
+  const handleNAToggle = (indicator: string) => {
+    setIndicators(prev => ({
+      ...prev,
+      [indicator]: { 
+        value: '', 
+        status: null, 
+        isNA: !prev[indicator].isNA 
+      }
+    }))
+  }
+
+  // Count indicators excluding N/A
+  const activeIndicators = Object.values(indicators).filter(i => !i.isNA)
+  
+  const countAtTarget = activeIndicators.filter(
     i => i.status === 'optimal' || i.status === 'effective'
   ).length
 
-  const countImproving = Object.values(indicators).filter(
+  const countImproving = activeIndicators.filter(
     i => i.status === 'improving' || i.status === 'sub-improving'
   ).length
 
-  const countStressed = Object.values(indicators).filter(
+  const countStressed = activeIndicators.filter(
     i => i.status === 'stressed'
   ).length
 
+  const countNA = Object.values(indicators).filter(i => i.isNA).length
+
   const handleSave = () => {
-    if (!selectedSite) {
-      alert('Please select a site.')
+    if (!selectedSiteId) {
+      alert(language === 'en' ? 'Please select a site.' : 'Silakan pilih fasilitas.')
       return
     }
     if (!selectedPathway) {
-      alert('Please select a Technical Support Pathway.')
+      alert(language === 'en' ? 'Please select a Technical Support Pathway.' : 'Silakan pilih Jalur Dukungan Teknis.')
       return
     }
     
-    // In production, this would save to Supabase
-    alert(`Quarterly data saved successfully!\n\nSite: ${selectedSite}\nPathway: ${selectedPathway}\n\n(Demo mode - data not persisted to database yet)`)
+    const message = language === 'en' 
+      ? `Quarterly data saved successfully!\n\nSite: ${selectedSite?.name}\nPathway: ${selectedPathway}\n\n(Demo mode - data not persisted to database yet)`
+      : `Data kuartalan berhasil disimpan!\n\nFasilitas: ${selectedSite?.name}\nJalur: ${selectedPathway}\n\n(Mode demo - data belum tersimpan ke database)`
+    alert(message)
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="max-w-4xl mx-auto">
       {/* Page Header */}
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-epic-navy">Quarterly Data Entry</h2>
-        <p className="text-gray-500 text-sm mt-1">Enter site performance data at the start of each quarter</p>
+        <h2 className="text-2xl font-bold text-epic-navy">{t.quarterlyEntryTitle}</h2>
+        <p className="text-gray-500 text-sm mt-1">
+          {language === 'en' 
+            ? 'Enter site performance data at the start of each quarter'
+            : 'Masukkan data kinerja fasilitas di awal setiap kuartal'}
+        </p>
       </div>
 
-      {/* Site Information Card */}
+      {/* Site Selection Card - Cascading Filters */}
       <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
         <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4 pb-3 border-b-2 border-epic-light-blue">
-          Site Information
+          {language === 'en' ? 'Site Selection' : 'Pemilihan Fasilitas'}
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        
+        {/* Filter Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          {/* Province */}
           <div>
-            <label className="block text-sm text-gray-500 mb-1.5 font-medium">Select Site</label>
+            <label className="block text-sm text-gray-500 mb-1.5 font-medium">
+              {language === 'en' ? 'Province' : 'Provinsi'}
+            </label>
             <select 
-              value={selectedSite}
-              onChange={(e) => setSelectedSite(e.target.value)}
+              value={selectedProvince}
+              onChange={(e) => setSelectedProvince(e.target.value)}
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-epic-primary focus:ring-2 focus:ring-epic-primary/10"
             >
-              <option value="">-- Select a site --</option>
-              <option value="pkm-kramat-jati">PKM Kramat Jati</option>
-              <option value="pkm-pasar-minggu">PKM Pasar Minggu</option>
-              <option value="pkm-tebet">PKM Tebet</option>
-              <option value="rs-persahabatan">RS Persahabatan</option>
-              <option value="pkm-cipinang">PKM Cipinang</option>
+              <option value="">{language === 'en' ? '-- All Provinces --' : '-- Semua Provinsi --'}</option>
+              {PROVINCES.map(province => (
+                <option key={province} value={province}>{province}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* District */}
+          <div>
+            <label className="block text-sm text-gray-500 mb-1.5 font-medium">
+              {language === 'en' ? 'District' : 'Kabupaten/Kota'}
+            </label>
+            <select 
+              value={selectedDistrict}
+              onChange={(e) => setSelectedDistrict(e.target.value)}
+              disabled={!selectedProvince}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-epic-primary focus:ring-2 focus:ring-epic-primary/10 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            >
+              <option value="">{language === 'en' ? '-- All Districts --' : '-- Semua Kabupaten --'}</option>
+              {availableDistricts.map(district => (
+                <option key={district} value={district}>{district}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Facility Type */}
+          <div>
+            <label className="block text-sm text-gray-500 mb-1.5 font-medium">
+              {language === 'en' ? 'Facility Type' : 'Jenis Fasilitas'}
+            </label>
+            <select 
+              value={selectedFacilityType}
+              onChange={(e) => setSelectedFacilityType(e.target.value)}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-epic-primary focus:ring-2 focus:ring-epic-primary/10"
+            >
+              <option value="">{language === 'en' ? '-- All Types --' : '-- Semua Jenis --'}</option>
+              {availableFacilityTypes.map(type => (
+                <option key={type} value={type}>{getFacilityTypeLabel(type)}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Site Selection */}
+        <div>
+          <label className="block text-sm text-gray-500 mb-1.5 font-medium">
+            {t.selectSite} 
+            <span className="text-epic-primary ml-2">
+              ({availableSites.length} {language === 'en' ? 'sites available' : 'fasilitas tersedia'})
+            </span>
+          </label>
+          <select 
+            value={selectedSiteId || ''}
+            onChange={(e) => setSelectedSiteId(e.target.value ? parseInt(e.target.value) : null)}
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-epic-primary focus:ring-2 focus:ring-epic-primary/10"
+          >
+            <option value="">-- {t.selectSite} --</option>
+            {availableSites.map(site => (
+              <option key={site.id} value={site.id}>
+                {site.name} ({site.district})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Selected Site Info */}
+        {selectedSite && (
+          <div className="mt-4 p-4 bg-epic-light-blue rounded-lg">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-epic-primary rounded-lg flex items-center justify-center text-white text-lg">
+                🏥
+              </div>
+              <div className="flex-1">
+                <div className="font-bold text-epic-navy">{selectedSite.name}</div>
+                <div className="text-sm text-gray-600">
+                  {selectedSite.district}, {selectedSite.province} • {getFacilityTypeLabel(selectedSite.facilityType)}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Quarter & Patient Count */}
+      <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
+        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4 pb-3 border-b-2 border-epic-light-blue">
+          {language === 'en' ? 'Reporting Period' : 'Periode Pelaporan'}
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm text-gray-500 mb-1.5 font-medium">
+              {language === 'en' ? 'Quarter' : 'Kuartal'}
+            </label>
+            <select 
+              value={selectedFYQuarter}
+              onChange={(e) => setSelectedFYQuarter(e.target.value)}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-epic-primary focus:ring-2 focus:ring-epic-primary/10"
+            >
+              <option value="Q1">Q1 ({language === 'en' ? 'Oct - Dec' : 'Okt - Des'})</option>
+              <option value="Q2">Q2 ({language === 'en' ? 'Jan - Mar' : 'Jan - Mar'})</option>
+              <option value="Q3">Q3 ({language === 'en' ? 'Apr - Jun' : 'Apr - Jun'})</option>
+              <option value="Q4">Q4 ({language === 'en' ? 'Jul - Sep' : 'Jul - Sep'})</option>
             </select>
           </div>
           <div>
-            <label className="block text-sm text-gray-500 mb-1.5 font-medium">Quarter</label>
+            <label className="block text-sm text-gray-500 mb-1.5 font-medium">
+              {language === 'en' ? 'Fiscal Year' : 'Tahun Fiskal'}
+            </label>
             <select 
-              value={selectedQuarter}
-              onChange={(e) => setSelectedQuarter(e.target.value)}
+              value={selectedFY}
+              onChange={(e) => setSelectedFY(e.target.value)}
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-epic-primary focus:ring-2 focus:ring-epic-primary/10"
             >
-              <option value="2025-Q1">Q1 2025 (Jan - Mar)</option>
-              <option value="2024-Q4">Q4 2024 (Oct - Dec)</option>
-              <option value="2024-Q3">Q3 2024 (Jul - Sep)</option>
+              <option value="25">FY25</option>
+              <option value="26">FY26</option>
+              <option value="27">FY27</option>
             </select>
           </div>
           <div>
-            <label className="block text-sm text-gray-500 mb-1.5 font-medium">Site Type</label>
-            <select 
-              value={siteType}
-              onChange={(e) => setSiteType(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-epic-primary focus:ring-2 focus:ring-epic-primary/10"
-            >
-              <option value="puskesmas">Puskesmas</option>
-              <option value="hospital">Hospital</option>
-              <option value="private">Private Clinic</option>
-              <option value="community">Community-Based</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm text-gray-500 mb-1.5 font-medium">Current on Treatment (Patients)</label>
+            <label className="block text-sm text-gray-500 mb-1.5 font-medium">{t.patientsOnTreatment}</label>
             <input 
               type="number" 
               value={patientCount}
               onChange={(e) => setPatientCount(e.target.value)}
+              placeholder={language === 'en' ? 'Enter patient count' : 'Masukkan jumlah pasien'}
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-epic-primary focus:ring-2 focus:ring-epic-primary/10"
               min="0"
             />
           </div>
+        </div>
+        {/* Display selected period */}
+        <div className="mt-3 text-sm text-epic-primary font-medium">
+          {language === 'en' ? 'Selected: ' : 'Dipilih: '}
+          {selectedFYQuarter} FY{selectedFY}
+          {selectedFYQuarter === 'Q1' && ` (${language === 'en' ? 'October - December' : 'Oktober - Desember'} 20${parseInt(selectedFY) - 1})`}
+          {selectedFYQuarter === 'Q2' && ` (${language === 'en' ? 'January - March' : 'Januari - Maret'} 20${selectedFY})`}
+          {selectedFYQuarter === 'Q3' && ` (${language === 'en' ? 'April - June' : 'April - Juni'} 20${selectedFY})`}
+          {selectedFYQuarter === 'Q4' && ` (${language === 'en' ? 'July - September' : 'Juli - September'} 20${selectedFY})`}
         </div>
       </div>
 
       {/* Performance Indicators Card */}
       <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
         <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4 pb-3 border-b-2 border-epic-light-blue">
-          Core Indicator Performance
+          {t.performanceIndicators}
         </h3>
         <p className="text-sm text-gray-500 mb-4">
-          Enter the percentage achieved for each indicator. Status colors update automatically based on Sustainable Excellence thresholds.
+          {language === 'en'
+            ? 'Enter the percentage achieved for each indicator. Status colors update automatically based on Sustainable Excellence thresholds.'
+            : 'Masukkan persentase yang dicapai untuk setiap indikator. Warna status diperbarui secara otomatis berdasarkan ambang batas Keunggulan Berkelanjutan.'}
         </p>
 
         <div className="space-y-3">
-          {Object.entries(INDICATOR_NAMES).map(([key, name]) => (
-            <div key={key} className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-epic-primary transition-colors">
-              <div className="w-12 h-12 bg-epic-light-blue rounded-lg flex items-center justify-center font-bold text-epic-navy mr-4 flex-shrink-0">
+          {Object.keys(indicators).map((key) => (
+            <div key={key} className={`flex items-center p-4 border rounded-lg transition-colors ${
+              indicators[key].isNA 
+                ? 'border-gray-200 bg-gray-50' 
+                : 'border-gray-200 hover:border-epic-primary'
+            }`}>
+              <div className={`w-12 h-12 rounded-lg flex items-center justify-center font-bold mr-4 flex-shrink-0 ${
+                indicators[key].isNA 
+                  ? 'bg-gray-200 text-gray-400' 
+                  : 'bg-epic-light-blue text-epic-navy'
+              }`}>
                 {key}
               </div>
               <div className="flex-1 min-w-0 mr-4">
-                <div className="font-semibold text-sm text-epic-navy">{name}</div>
-                <div className="text-xs text-gray-500 truncate">{INDICATOR_DESCRIPTIONS[key as keyof typeof INDICATOR_DESCRIPTIONS]}</div>
+                <div className={`font-semibold text-sm ${indicators[key].isNA ? 'text-gray-400' : 'text-epic-navy'}`}>
+                  {getIndicatorName(key)}
+                </div>
+                <div className="text-xs text-gray-500 truncate">{getIndicatorDesc(key)}</div>
               </div>
               <div className="flex items-center gap-2">
+                {/* N/A Checkbox */}
+                <label className="flex items-center gap-1.5 mr-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={indicators[key].isNA}
+                    onChange={() => handleNAToggle(key)}
+                    className="w-4 h-4 rounded border-gray-300 text-gray-500 focus:ring-gray-400"
+                  />
+                  <span className="text-xs text-gray-500 font-medium">N/A</span>
+                </label>
+                
                 <input
                   type="number"
-                  value={indicators[key].value}
+                  value={indicators[key].isNA ? '' : indicators[key].value}
                   onChange={(e) => handleIndicatorChange(key, e.target.value)}
-                  placeholder="--"
+                  placeholder={indicators[key].isNA ? '--' : '--'}
+                  disabled={indicators[key].isNA}
                   min="0"
                   max="100"
                   className={`w-20 px-3 py-2.5 border-2 rounded-lg text-center font-semibold text-lg transition-all focus:outline-none ${
-                    indicators[key].status 
-                      ? statusColors[indicators[key].status!] 
-                      : 'border-gray-300'
+                    indicators[key].isNA
+                      ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : indicators[key].status 
+                        ? statusColors[indicators[key].status!] 
+                        : 'border-gray-300'
                   }`}
                 />
-                <span className="font-semibold text-epic-navy">%</span>
+                <span className={`font-semibold ${indicators[key].isNA ? 'text-gray-400' : 'text-epic-navy'}`}>%</span>
                 <span className={`px-2.5 py-1 rounded text-xs font-semibold text-white min-w-[70px] text-center ${
-                  indicators[key].status 
-                    ? statusBadgeColors[indicators[key].status!] 
-                    : 'bg-gray-300'
+                  indicators[key].isNA
+                    ? 'bg-gray-400'
+                    : indicators[key].status 
+                      ? statusBadgeColors[indicators[key].status!] 
+                      : 'bg-gray-300'
                 }`}>
-                  {indicators[key].status ? statusLabels[indicators[key].status!] : '--'}
+                  {indicators[key].isNA 
+                    ? 'N/A' 
+                    : indicators[key].status 
+                      ? getStatusLabel(indicators[key].status!) 
+                      : '--'}
                 </span>
               </div>
             </div>
@@ -211,7 +509,7 @@ export default function QuarterlyEntry() {
           onClick={() => setShowThresholds(!showThresholds)}
           className="flex items-center gap-2 mt-4 text-epic-primary text-sm hover:underline"
         >
-          <span>📊</span> {showThresholds ? 'Hide' : 'View'} Performance Thresholds Reference
+          <span>📊</span> {showThresholds ? t.hideThresholds : t.showThresholds}
         </button>
 
         {showThresholds && (
@@ -219,45 +517,53 @@ export default function QuarterlyEntry() {
             <table className="w-full text-xs">
               <thead>
                 <tr>
-                  <th className="bg-epic-navy text-white p-2 text-left rounded-tl">Indicator</th>
-                  <th className="bg-green-100 p-2 text-center">Optimal</th>
-                  <th className="bg-lime-100 p-2 text-center">Effective</th>
-                  <th className="bg-orange-100 p-2 text-center">Improving</th>
-                  <th className="bg-orange-200 p-2 text-center">(Sub)</th>
-                  <th className="bg-red-100 p-2 text-center rounded-tr">Stressed</th>
+                  <th className="bg-epic-navy text-white p-2 text-left rounded-tl">{t.indicator}</th>
+                  <th className="bg-green-100 p-2 text-center">{t.optimal}</th>
+                  <th className="bg-lime-100 p-2 text-center">{t.effective}</th>
+                  <th className="bg-orange-100 p-2 text-center">{t.improving}</th>
+                  <th className="bg-orange-200 p-2 text-center">({t.subImproving})</th>
+                  <th className="bg-red-100 p-2 text-center rounded-tr">{t.stressed}</th>
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(THRESHOLDS).map(([key, t]) => (
+                {Object.entries(THRESHOLDS).map(([key, threshold]) => (
                   <tr key={key} className="border-b border-gray-200">
                     <td className="p-2 font-medium">{key}</td>
-                    <td className="p-2 text-center bg-green-50">&gt;{t.optimal}%</td>
-                    <td className="p-2 text-center bg-lime-50">{t.effective}-{t.optimal - 1}%</td>
-                    <td className="p-2 text-center bg-orange-50">{t.improving}-{t.effective - 1}%</td>
-                    <td className="p-2 text-center bg-orange-100">{t.sub}-{t.improving - 1}%</td>
-                    <td className="p-2 text-center bg-red-50">&lt;{t.sub}%</td>
+                    <td className="p-2 text-center bg-green-50">&gt;{threshold.optimal}%</td>
+                    <td className="p-2 text-center bg-lime-50">{threshold.effective}-{threshold.optimal - 1}%</td>
+                    <td className="p-2 text-center bg-orange-50">{threshold.improving}-{threshold.effective - 1}%</td>
+                    <td className="p-2 text-center bg-orange-100">{threshold.sub}-{threshold.improving - 1}%</td>
+                    <td className="p-2 text-center bg-red-50">&lt;{threshold.sub}%</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <p className="mt-3 text-xs text-gray-500 italic">Source: Sustainable Excellence Framework, February 2026</p>
+            <p className="mt-3 text-xs text-gray-500 italic">
+              {language === 'en' 
+                ? 'Source: Sustainable Excellence Framework, February 2026'
+                : 'Sumber: Kerangka Keunggulan Berkelanjutan, Februari 2026'}
+            </p>
           </div>
         )}
 
         {/* Summary */}
         <div className="mt-6 p-5 bg-gradient-to-br from-epic-light-blue to-blue-50 rounded-lg">
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-4">
             <div className="bg-white rounded-lg p-4 text-center">
               <div className="text-3xl font-bold text-epic-navy">{countAtTarget}</div>
-              <div className="text-xs text-gray-500 mt-1">Optimal / Effective</div>
+              <div className="text-xs text-gray-500 mt-1">{t.optimal} / {t.effective}</div>
             </div>
             <div className="bg-white rounded-lg p-4 text-center">
               <div className="text-3xl font-bold text-epic-navy">{countImproving}</div>
-              <div className="text-xs text-gray-500 mt-1">Improving</div>
+              <div className="text-xs text-gray-500 mt-1">{t.improving}</div>
             </div>
             <div className="bg-white rounded-lg p-4 text-center">
               <div className="text-3xl font-bold text-epic-navy">{countStressed}</div>
-              <div className="text-xs text-gray-500 mt-1">Stressed</div>
+              <div className="text-xs text-gray-500 mt-1">{t.stressed}</div>
+            </div>
+            <div className="bg-white rounded-lg p-4 text-center">
+              <div className="text-3xl font-bold text-gray-400">{countNA}</div>
+              <div className="text-xs text-gray-500 mt-1">N/A</div>
             </div>
           </div>
         </div>
@@ -266,10 +572,33 @@ export default function QuarterlyEntry() {
       {/* Pathway Assignment Card */}
       <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
         <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4 pb-3 border-b-2 border-epic-light-blue">
-          Technical Support Pathway Assignment
+          {t.pathwayAssignment}
         </h3>
+        
+        {/* Indicator count helper */}
+        <div className="mb-4 p-4 bg-gradient-to-r from-epic-light-blue to-blue-50 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-sm font-medium text-epic-navy">
+                {language === 'en' ? 'Indicators at Optimal/Effective:' : 'Indikator pada Optimal/Efektif:'}
+              </span>
+              <span className="ml-2 text-2xl font-bold text-epic-primary">{countAtTarget}</span>
+              <span className="text-sm text-gray-500 ml-1">/ 6</span>
+            </div>
+            <div className="text-right">
+              <div className={`text-sm font-semibold ${countAtTarget >= 4 ? 'text-green-600' : 'text-orange-600'}`}>
+                {countAtTarget >= 4 
+                  ? (language === 'en' ? '→ Eligible for Rationalization or higher' : '→ Memenuhi syarat Rasionalisasi atau lebih tinggi')
+                  : (language === 'en' ? '→ Prioritization recommended' : '→ Prioritisasi direkomendasikan')}
+              </div>
+            </div>
+          </div>
+        </div>
+
         <p className="text-sm text-gray-500 mb-4">
-          Based on the performance data entered above, select the appropriate pathway for this quarter.
+          {language === 'en'
+            ? 'Select the appropriate pathway based on current performance and historical trends.'
+            : 'Pilih jalur yang sesuai berdasarkan kinerja saat ini dan tren historis.'}
         </p>
 
         <div className="space-y-2">
@@ -301,11 +630,13 @@ export default function QuarterlyEntry() {
                 className="px-3 py-1 rounded text-xs font-semibold text-white mr-3"
                 style={{ backgroundColor: pathway.color }}
               >
-                {pathway.name}
+                {getPathwayName(key)}
               </span>
               <div className="flex-1">
-                <div className="font-semibold text-sm text-epic-navy">{pathway.description}</div>
-                <div className="text-xs text-gray-500">Contact frequency: {pathway.contactFrequency}</div>
+                <div className="font-semibold text-sm text-epic-navy">{getPathwayDesc(key)}</div>
+                <div className="text-xs text-gray-500">
+                  {language === 'en' ? 'Contact frequency' : 'Frekuensi kontak'}: {pathway.contactFrequency}
+                </div>
               </div>
             </label>
           ))}
@@ -315,44 +646,136 @@ export default function QuarterlyEntry() {
       {/* Mentor Assignment Card */}
       <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
         <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4 pb-3 border-b-2 border-epic-light-blue">
-          Mentor Assignment
+          {t.assignedMentor}
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm text-gray-500 mb-1.5 font-medium">Assigned Mentor</label>
-            <select 
-              value={selectedMentor}
-              onChange={(e) => setSelectedMentor(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-epic-primary focus:ring-2 focus:ring-epic-primary/10"
+        
+        <p className="text-sm text-gray-500 mb-4">
+          {language === 'en' 
+            ? 'Select one or more mentors assigned to support this site.'
+            : 'Pilih satu atau lebih pendamping yang ditugaskan untuk mendukung fasilitas ini.'}
+        </p>
+
+        {/* Selected mentors display */}
+        {selectedMentors.length > 0 && (
+          <div className="mb-4 p-3 bg-epic-light-blue rounded-lg">
+            <div className="text-xs text-gray-500 mb-2 font-medium">
+              {language === 'en' ? 'Selected:' : 'Dipilih:'} {selectedMentors.length} {language === 'en' ? 'mentor(s)' : 'pendamping'}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {selectedMentors.map(id => {
+                const mentor = mentors.find(m => m.id === id)
+                return mentor ? (
+                  <span 
+                    key={id}
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-white rounded-full text-sm font-medium text-epic-navy border border-epic-primary"
+                  >
+                    {mentor.name}
+                    <button 
+                      onClick={() => handleMentorToggle(id)}
+                      className="ml-1 text-gray-400 hover:text-red-500"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ) : null
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Mentor checkboxes */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
+          {mentors.map(mentor => (
+            <label 
+              key={mentor.id}
+              className={`flex items-center p-3 border rounded-lg cursor-pointer transition-all ${
+                selectedMentors.includes(mentor.id)
+                  ? 'border-epic-primary bg-epic-light-blue'
+                  : 'border-gray-200 hover:border-epic-primary'
+              }`}
             >
-              <option value="">-- Select mentor --</option>
-              <option value="dewi">Dewi Suryani (District Mentor)</option>
-              <option value="budi">Budi Santoso (District Mentor)</option>
-              <option value="rina">Rina Wijaya (District Mentor)</option>
-            </select>
+              <input
+                type="checkbox"
+                checked={selectedMentors.includes(mentor.id)}
+                onChange={() => handleMentorToggle(mentor.id)}
+                className="w-4 h-4 rounded border-gray-300 text-epic-primary focus:ring-epic-primary mr-3"
+              />
+              <span className="text-sm font-medium text-epic-navy">{mentor.name}</span>
+            </label>
+          ))}
+        </div>
+
+        {/* Add New Mentor Button */}
+        {!showAddMentor ? (
+          <button
+            onClick={() => setShowAddMentor(true)}
+            className="text-sm text-epic-primary hover:underline font-medium"
+          >
+            ➕ {language === 'en' ? 'Add new mentor' : 'Tambah pendamping baru'}
+          </button>
+        ) : (
+          <div className="p-3 border border-epic-primary rounded-lg bg-epic-light-blue">
+            <label className="block text-sm text-epic-navy mb-1.5 font-medium">
+              {language === 'en' ? 'New Mentor Name' : 'Nama Pendamping Baru'}
+            </label>
+            <div className="flex gap-2">
+              <input 
+                type="text"
+                value={newMentorName}
+                onChange={(e) => setNewMentorName(e.target.value)}
+                placeholder={language === 'en' ? 'Enter full name' : 'Masukkan nama lengkap'}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-epic-primary"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    handleAddMentor()
+                  }
+                }}
+              />
+              <button
+                onClick={handleAddMentor}
+                disabled={!newMentorName.trim()}
+                className="px-4 py-2 bg-epic-primary text-white rounded-lg text-sm font-medium hover:bg-epic-primary/90 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                {language === 'en' ? 'Add' : 'Tambah'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowAddMentor(false)
+                  setNewMentorName('')
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100"
+              >
+                {language === 'en' ? 'Cancel' : 'Batal'}
+              </button>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm text-gray-500 mb-1.5 font-medium">Expected Contact Frequency</label>
-            <input 
-              type="text" 
-              readOnly
-              value={selectedPathway ? PATHWAYS[selectedPathway as keyof typeof PATHWAYS].contactFrequency : 'Based on pathway selection'}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50"
-            />
-          </div>
+        )}
+
+        {/* Contact Frequency */}
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <label className="block text-sm text-gray-500 mb-1.5 font-medium">
+            {language === 'en' ? 'Expected Contact Frequency' : 'Frekuensi Kontak yang Diharapkan'}
+          </label>
+          <input 
+            type="text" 
+            readOnly
+            value={selectedPathway ? PATHWAYS[selectedPathway as keyof typeof PATHWAYS].contactFrequency : (language === 'en' ? 'Based on pathway selection' : 'Berdasarkan pilihan jalur')}
+            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50"
+          />
         </div>
       </div>
 
       {/* Buttons */}
       <div className="flex gap-3">
         <button className="px-6 py-3 border-2 border-gray-300 rounded-lg text-sm font-semibold text-epic-navy hover:border-epic-navy transition-colors">
-          Cancel
+          {language === 'en' ? 'Cancel' : 'Batal'}
         </button>
         <button 
           onClick={handleSave}
           className="flex-1 px-6 py-3 bg-epic-primary text-white rounded-lg text-sm font-semibold hover:bg-epic-primary/90 transition-colors"
         >
-          Save Quarterly Data
+          {t.saveEntry}
         </button>
       </div>
     </div>

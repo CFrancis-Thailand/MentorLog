@@ -112,7 +112,12 @@ export function getIndicatorStatus(indicator: string, value: number | null): Per
   const t = THRESHOLDS[indicator as keyof typeof THRESHOLDS]
   if (!t) return null
   
-  if (value > t.optimal) return 'optimal'
+  // Indicator 6.1 uses ≥ for optimal (86% = optimal), others use > 
+  if (indicator === '6.1') {
+    if (value >= t.optimal) return 'optimal'
+  } else {
+    if (value > t.optimal) return 'optimal'
+  }
   if (value >= t.effective) return 'effective'
   if (value >= t.improving) return 'improving'
   if (value >= t.sub) return 'sub-improving'
@@ -139,38 +144,48 @@ export function countIndicatorsAtTarget(performance: QuarterlyPerformance): numb
 export const PATHWAYS = {
   'prioritization': {
     name: 'Prioritization',
-    description: 'Intensive weekly support',
+    description: 'Fewer than four indicators at Optimal/Effective performance',
+    criteria: '<4 indicators at Optimal/Effective',
     color: '#0D47A1', // Dark blue - most intensive
     colorLight: '#E3F2FD',
-    contactFrequency: 'Weekly'
+    contactFrequency: 'Biweekly or monthly',
+    supportType: 'Intensive support'
   },
   'rationalization': {
     name: 'Rationalization', 
-    description: 'Targeted monthly support',
+    description: 'Four or more indicators at Optimal/Effective over past quarter',
+    criteria: '≥4 indicators at Optimal/Effective (1 quarter)',
     color: '#1976D2', // Medium blue
     colorLight: '#BBDEFB',
-    contactFrequency: 'Monthly'
+    contactFrequency: 'Monthly or quarterly',
+    supportType: 'Targeted support'
   },
   'transition-ready': {
     name: 'Transition-Ready',
-    description: 'Light-touch quarterly support',
+    description: 'Four or more indicators at Optimal/Effective over past 3 consecutive quarters',
+    criteria: '≥4 indicators at Optimal/Effective (3 consecutive quarters)',
     color: '#42A5F5', // Sky blue
     colorLight: '#E1F5FE',
-    contactFrequency: 'Quarterly'
+    contactFrequency: 'Quarterly',
+    supportType: 'Light-touch support'
   },
   'graduation': {
     name: 'Graduation',
-    description: 'On-request support only',
+    description: 'Facilities operating independently with sustained high performance',
+    criteria: 'Sustained high performance',
     color: '#81D4FA', // Light blue - graduated/light touch
     colorLight: '#E0F7FA',
-    contactFrequency: 'On-request'
+    contactFrequency: 'On request',
+    supportType: 'On request support'
   },
   're-engagement': {
     name: 'Re-engagement',
-    description: 'Time-limited targeted support',
+    description: 'Previously transitioned or graduated facilities experiencing performance decline',
+    criteria: 'Performance decline after transition/graduation',
     color: '#5C6BC0', // Indigo - special case, stands out
     colorLight: '#E8EAF6',
-    contactFrequency: 'Weekly (time-limited)'
+    contactFrequency: 'Time-limited',
+    supportType: 'Time-limited targeted support'
   },
 }
 
