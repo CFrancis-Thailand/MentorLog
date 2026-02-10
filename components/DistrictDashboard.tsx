@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Chart, registerables } from 'chart.js'
 import { PATHWAYS, ROOT_CAUSES } from '@/lib/supabase'
+import { getSiteById, SITES } from '@/lib/sites'
 import type { Language, Translations } from '@/app/page'
 
 Chart.register(...registerables)
@@ -10,6 +11,7 @@ Chart.register(...registerables)
 interface DistrictDashboardProps {
   language: Language
   translations: Translations
+  selectedSiteId?: number | null
 }
 
 // Sample data - in production this would come from Supabase
@@ -113,7 +115,12 @@ const supportModalityColors: string[] = [
   '#80CBC4',  // other
 ]
 
-export default function DistrictDashboard({ language, translations: t }: DistrictDashboardProps) {
+export default function DistrictDashboard({ language, translations: t, selectedSiteId }: DistrictDashboardProps) {
+
+  const selectedSite = selectedSiteId ? getSiteById(selectedSiteId) : null
+  const districtSites = selectedSite ? SITES.filter(s => s.district === selectedSite.district) : []
+  const activeDistrictData = selectedSite ? { ...sampleDistrictData, name: selectedSite.district + " District", province: selectedSite.province, totalSites: districtSites.length, sitesByType: { puskesmas: districtSites.filter(s => s.facilityType === "Puskesmas").length, hospital: districtSites.filter(s => s.facilityType === "Hospital").length, private: districtSites.filter(s => s.facilityType === "NGO clinic").length } } : sampleDistrictData
+
   const donutRef = useRef<HTMLCanvasElement>(null)
   const barRef = useRef<HTMLCanvasElement>(null)
   const donutInstance = useRef<Chart | null>(null)
@@ -127,9 +134,9 @@ export default function DistrictDashboard({ language, translations: t }: Distric
       donutInstance.current = new Chart(donutRef.current, {
         type: 'doughnut',
         data: {
-          labels: sampleDistrictData.supportDelivered.byModality.map(m => m.name),
+          labels: activeDistrictData.supportDelivered.byModality.map(m => m.name),
           datasets: [{
-            data: sampleDistrictData.supportDelivered.byModality.map(m => m.hours),
+            data: activeDistrictData.supportDelivered.byModality.map(m => m.hours),
             backgroundColor: supportModalityColors,
             borderWidth: 0,
           }],
@@ -155,11 +162,11 @@ export default function DistrictDashboard({ language, translations: t }: Distric
       barInstance.current = new Chart(barRef.current, {
         type: 'bar',
         data: {
-          labels: sampleDistrictData.rootCauseCounts.map(r => 
+          labels: activeDistrictData.rootCauseCounts.map(r => 
             ROOT_CAUSES.find(rc => rc.id === r.id)?.name || r.id
           ),
           datasets: [{
-            data: sampleDistrictData.rootCauseCounts.map(r => r.count),
+            data: activeDistrictData.rootCauseCounts.map(r => r.count),
             backgroundColor: rootCauseColors,
             borderRadius: 6,
           }],
@@ -202,10 +209,10 @@ export default function DistrictDashboard({ language, translations: t }: Distric
     <div className="max-w-7xl mx-auto p-6">
       {/* Dashboard Header */}
       <div className="mb-6">
-        <h2 className="text-3xl font-bold text-epic-navy">{sampleDistrictData.name}</h2>
+        <h2 className="text-3xl font-bold text-epic-navy">{activeDistrictData.name}</h2>
         <div className="text-sm text-gray-500 mt-1 space-x-4">
-          <span>📍 {sampleDistrictData.province} Province</span>
-          <span>📅 {sampleDistrictData.currentQuarter}</span>
+          <span>📍 {activeDistrictData.province} Province</span>
+          <span>📅 {activeDistrictData.currentQuarter}</span>
         </div>
       </div>
 
@@ -214,12 +221,12 @@ export default function DistrictDashboard({ language, translations: t }: Distric
         <div className="col-span-12 lg:col-span-3 bg-white rounded-xl p-5 shadow-sm">
           <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Sites</span>
           <div className="text-center mt-4">
-            <div className="text-5xl font-bold text-epic-navy">{sampleDistrictData.totalSites}</div>
+            <div className="text-5xl font-bold text-epic-navy">{activeDistrictData.totalSites}</div>
             <div className="text-sm text-gray-500 mt-1">Active Facilities</div>
             <div className="flex justify-center gap-4 mt-3 text-xs text-gray-500">
-              <span>🏥 {sampleDistrictData.sitesByType.puskesmas} Puskesmas</span>
-              <span>🏨 {sampleDistrictData.sitesByType.hospital} Hospital</span>
-              <span>🏢 {sampleDistrictData.sitesByType.private} Private</span>
+              <span>🏥 {activeDistrictData.sitesByType.puskesmas} Puskesmas</span>
+              <span>🏨 {activeDistrictData.sitesByType.hospital} Hospital</span>
+              <span>🏢 {activeDistrictData.sitesByType.private} Private</span>
             </div>
           </div>
         </div>
@@ -236,7 +243,7 @@ export default function DistrictDashboard({ language, translations: t }: Distric
                   stroke="url(#gradient-effective)" strokeWidth="10"
                   strokeLinecap="round"
                   strokeDasharray="339"
-                  strokeDashoffset={339 - (339 * sampleDistrictData.sitesMeetingTarget / sampleDistrictData.totalSites)}
+                  strokeDashoffset={339 - (339 * activeDistrictData.sitesMeetingTarget / activeDistrictData.totalSites)}
                 />
                 <defs>
                   <linearGradient id="gradient-effective" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -246,13 +253,13 @@ export default function DistrictDashboard({ language, translations: t }: Distric
                 </defs>
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <div className="text-3xl font-bold text-epic-navy">{sampleDistrictData.sitesMeetingTarget}</div>
-                <div className="text-xs text-gray-500">of {sampleDistrictData.totalSites} sites</div>
+                <div className="text-3xl font-bold text-epic-navy">{activeDistrictData.sitesMeetingTarget}</div>
+                <div className="text-xs text-gray-500">of {activeDistrictData.totalSites} sites</div>
               </div>
             </div>
           </div>
           <div className="flex items-center justify-center gap-1 mt-3 text-sm font-semibold text-status-optimal">
-            <span>▲</span> +{sampleDistrictData.changeFromLastQuarter} sites from Q4 2024
+            <span>▲</span> +{activeDistrictData.changeFromLastQuarter} sites from Q4 2024
           </div>
         </div>
 
@@ -260,8 +267,8 @@ export default function DistrictDashboard({ language, translations: t }: Distric
         <div className="col-span-12 lg:col-span-6 bg-white rounded-xl p-5 shadow-sm">
           <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Sites by Technical Support Pathway</span>
           <div className="mt-4 space-y-2.5">
-            {Object.entries(sampleDistrictData.pathwayDistribution).map(([key, count]) => {
-              const pct = (count / sampleDistrictData.totalSites) * 100
+            {Object.entries(activeDistrictData.pathwayDistribution).map(([key, count]) => {
+              const pct = (count / activeDistrictData.totalSites) * 100
               return (
                 <div key={key} className="flex items-center gap-3">
                   <span 
@@ -292,7 +299,7 @@ export default function DistrictDashboard({ language, translations: t }: Distric
         <div className="col-span-12 lg:col-span-7 bg-white rounded-xl p-5 shadow-sm">
           <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Site Distribution by Indicator Performance</span>
           <div className="mt-4 space-y-4">
-            {Object.entries(sampleDistrictData.indicatorDistribution).map(([key, data]) => (
+            {Object.entries(activeDistrictData.indicatorDistribution).map(([key, data]) => (
               <div key={key} className="flex items-center gap-3">
                 <span className="w-12 text-sm font-semibold text-epic-navy">{key}</span>
                 <div className="flex-1 h-8 flex rounded-md overflow-hidden">
@@ -338,22 +345,22 @@ export default function DistrictDashboard({ language, translations: t }: Distric
         <div className="col-span-12 lg:col-span-5 bg-white rounded-xl p-5 shadow-sm">
           <div className="flex justify-between items-center mb-4">
             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Technical Support Delivered</span>
-            <span className="text-xs text-epic-primary">{sampleDistrictData.currentQuarter}</span>
+            <span className="text-xs text-epic-primary">{activeDistrictData.currentQuarter}</span>
           </div>
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="text-center p-4 bg-gray-50 rounded-lg">
-              <div className="text-3xl font-bold text-epic-navy">{sampleDistrictData.supportDelivered.totalHours}</div>
+              <div className="text-3xl font-bold text-epic-navy">{activeDistrictData.supportDelivered.totalHours}</div>
               <div className="text-xs text-gray-500">Total Hours</div>
             </div>
             <div className="text-center p-4 bg-gray-50 rounded-lg">
-              <div className="text-3xl font-bold text-epic-navy">{sampleDistrictData.supportDelivered.totalVisits}</div>
+              <div className="text-3xl font-bold text-epic-navy">{activeDistrictData.supportDelivered.totalVisits}</div>
               <div className="text-xs text-gray-500">Total Visits</div>
             </div>
           </div>
           <div className="relative h-44">
             <canvas ref={donutRef}></canvas>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <div className="text-2xl font-bold text-epic-navy">{sampleDistrictData.supportDelivered.totalHours}</div>
+              <div className="text-2xl font-bold text-epic-navy">{activeDistrictData.supportDelivered.totalHours}</div>
               <div className="text-xs text-gray-500">hours</div>
             </div>
           </div>
@@ -374,7 +381,7 @@ export default function DistrictDashboard({ language, translations: t }: Distric
         <div className="col-span-12 lg:col-span-6 bg-white rounded-xl p-5 shadow-sm">
           <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Mentor Activity</span>
           <div className="grid grid-cols-3 gap-4 mt-4">
-            {sampleDistrictData.mentors.map((m, i) => (
+            {activeDistrictData.mentors.map((m, i) => (
               <div key={i} className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-epic-primary to-epic-navy flex items-center justify-center text-white font-bold text-lg">
                   {m.initials}
@@ -397,14 +404,14 @@ export default function DistrictDashboard({ language, translations: t }: Distric
           <div className="flex justify-between items-center mb-2">
             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">System-Level Escalations</span>
             <span className="px-2.5 py-1 bg-amber-500 text-white text-xs font-semibold rounded-full">
-              {sampleDistrictData.escalations.length} Active
+              {activeDistrictData.escalations.length} Active
             </span>
           </div>
           <p className="text-xs text-gray-500 mb-4">
             Escalations trigger when &gt;75% of sites within a facility type perform sub-optimally on a specific indicator
           </p>
           
-          {sampleDistrictData.escalations.map((esc, i) => (
+          {activeDistrictData.escalations.map((esc, i) => (
             <div key={i} className="bg-gradient-to-r from-amber-50 to-amber-100 rounded-lg p-4 border-l-4 border-amber-500">
               <div className="flex items-center gap-3 mb-2">
                 <span className="text-xl">⚠️</span>

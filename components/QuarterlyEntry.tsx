@@ -21,6 +21,7 @@ import type { Language, Translations } from '@/app/page'
 interface QuarterlyEntryProps {
   language: Language
   translations: Translations
+  onSiteSelect?: (id: number | null) => void
 }
 
 interface IndicatorValue {
@@ -45,7 +46,7 @@ const statusBadgeColors: Record<PerformanceStatus, string> = {
   'stressed': 'bg-status-stressed',
 }
 
-export default function QuarterlyEntry({ language, translations: t }: QuarterlyEntryProps) {
+export default function QuarterlyEntry({ language, translations: t, onSiteSelect }: QuarterlyEntryProps) {
   // Site selection filters
   const [selectedProvince, setSelectedProvince] = useState('')
   const [selectedDistrict, setSelectedDistrict] = useState('')
@@ -106,6 +107,8 @@ export default function QuarterlyEntry({ language, translations: t }: QuarterlyE
   })
 
   // Update available districts when province changes
+  useEffect(() => { if (onSiteSelect) onSiteSelect(selectedSiteId) }, [selectedSiteId])
+
   useEffect(() => {
     if (selectedProvince) {
       setAvailableDistricts(getDistrictsByProvince(selectedProvince))

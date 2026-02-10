@@ -10,6 +10,7 @@ import {
   getIndicatorStatus,
   type PerformanceStatus
 } from '@/lib/supabase'
+import { getSiteById } from '@/lib/sites'
 import type { Language, Translations } from '@/app/page'
 
 Chart.register(...registerables)
@@ -17,6 +18,7 @@ Chart.register(...registerables)
 interface SiteDashboardProps {
   language: Language
   translations: Translations
+  selectedSiteId?: number | null
 }
 
 // Sample data - in production this would come from Supabase
@@ -120,7 +122,11 @@ const targetPositions: Record<string, number> = {
   '6.1': 86,
 }
 
-export default function SiteDashboard({ language, translations: t }: SiteDashboardProps) {
+export default function SiteDashboard({ language, translations: t, selectedSiteId }: SiteDashboardProps) {
+
+  const selectedSite = selectedSiteId ? getSiteById(selectedSiteId) : null
+  const activeSiteData = selectedSite ? { ...sampleSiteData, name: selectedSite.name, district: selectedSite.district, province: selectedSite.province, siteType: selectedSite.facilityType } : sampleSiteData
+
   const chartRef = useRef<HTMLCanvasElement>(null)
   const chartInstance = useRef<Chart | null>(null)
 
@@ -136,7 +142,7 @@ export default function SiteDashboard({ language, translations: t }: SiteDashboa
           labels: ['Q2 2024', 'Q3 2024', 'Q4 2024', 'Q1 2025'],
           datasets: [{
             label: 'Indicators at Optimal/Effective',
-            data: sampleSiteData.indicatorsAtTargetHistory,
+            data: activeSiteData.indicatorsAtTargetHistory,
             backgroundColor: [
               'rgba(230, 57, 70, 0.8)',
               'rgba(255, 167, 38, 0.8)',
@@ -183,13 +189,13 @@ export default function SiteDashboard({ language, translations: t }: SiteDashboa
     }
   }, [])
 
-  const indicatorsAtTarget = Object.entries(sampleSiteData.performance).filter(([key, value]) => {
+  const indicatorsAtTarget = Object.entries(activeSiteData.performance).filter(([key, value]) => {
     const status = getIndicatorStatus(key, value)
     return status === 'optimal' || status === 'effective'
   }).length
 
-  const quartersAtCurrentPathway = sampleSiteData.pathwayHistory.filter(
-    h => h.pathway === sampleSiteData.currentPathway
+  const quartersAtCurrentPathway = activeSiteData.pathwayHistory.filter(
+    h => h.pathway === activeSiteData.currentPathway
   ).length
 
   return (
@@ -197,19 +203,19 @@ export default function SiteDashboard({ language, translations: t }: SiteDashboa
       {/* Dashboard Header */}
       <div className="flex justify-between items-start mb-6 flex-wrap gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-epic-navy">{sampleSiteData.name}</h2>
+          <h2 className="text-3xl font-bold text-epic-navy">{activeSiteData.name}</h2>
           <div className="text-sm text-gray-500 mt-1 space-x-4">
-            <span>📍 {sampleSiteData.district}, {sampleSiteData.province}</span>
-            <span>🏥 {sampleSiteData.siteType}</span>
-            <span>👥 {sampleSiteData.patientsOnTreatment} patients on treatment</span>
-            <span>👤 Mentor: {sampleSiteData.mentor}</span>
+            <span>📍 {activeSiteData.district}, {activeSiteData.province}</span>
+            <span>🏥 {activeSiteData.siteType}</span>
+            <span>👥 {activeSiteData.patientsOnTreatment} patients on treatment</span>
+            <span>👤 Mentor: {activeSiteData.mentor}</span>
           </div>
         </div>
         <div 
           className="px-5 py-2 rounded-lg text-sm font-bold text-white uppercase tracking-wide"
-          style={{ background: `linear-gradient(135deg, ${pathwayColors[sampleSiteData.currentPathway]}, ${pathwayColors[sampleSiteData.currentPathway]}dd)` }}
+          style={{ background: `linear-gradient(135deg, ${pathwayColors[activeSiteData.currentPathway]}, ${pathwayColors[activeSiteData.currentPathway]}dd)` }}
         >
-          {PATHWAYS[sampleSiteData.currentPathway as keyof typeof PATHWAYS].name}
+          {PATHWAYS[activeSiteData.currentPathway as keyof typeof PATHWAYS].name}
         </div>
       </div>
 
@@ -218,11 +224,11 @@ export default function SiteDashboard({ language, translations: t }: SiteDashboa
         <div className="col-span-12 lg:col-span-4 bg-white rounded-xl p-5 shadow-sm">
           <div className="flex justify-between items-center mb-4">
             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Indicators at Target</span>
-            <span className="text-xs text-epic-primary">{sampleSiteData.currentQuarter}</span>
+            <span className="text-xs text-epic-primary">{activeSiteData.currentQuarter}</span>
           </div>
           <div className="flex items-center justify-center py-4">
             <div className="flex gap-2 mr-6">
-              {Object.entries(sampleSiteData.performance).map(([key, value]) => {
+              {Object.entries(activeSiteData.performance).map(([key, value]) => {
                 const status = getIndicatorStatus(key, value)
                 const isAtTarget = status === 'optimal' || status === 'effective'
                 return (
@@ -257,7 +263,7 @@ export default function SiteDashboard({ language, translations: t }: SiteDashboa
           </div>
           <div className="relative flex items-center justify-between py-5 px-10">
             <div className="absolute top-1/2 left-10 right-10 h-1 bg-epic-light-blue -translate-y-1/2 z-0"></div>
-            {sampleSiteData.pathwayHistory.map((h, i) => (
+            {activeSiteData.pathwayHistory.map((h, i) => (
               <div key={i} className="flex flex-col items-center z-10">
                 <div 
                   className={`w-12 h-12 rounded-full flex items-center justify-center text-xs font-bold text-white border-3 border-white shadow-md ${h.current ? 'scale-110' : ''}`}
@@ -274,7 +280,7 @@ export default function SiteDashboard({ language, translations: t }: SiteDashboa
           </div>
           <div className="text-center mt-4">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-50 to-orange-50 rounded-full text-sm font-semibold text-status-improving">
-              ⏱️ {quartersAtCurrentPathway} quarters at {PATHWAYS[sampleSiteData.currentPathway as keyof typeof PATHWAYS].name} — review for Transition-Ready eligibility
+              ⏱️ {quartersAtCurrentPathway} quarters at {PATHWAYS[activeSiteData.currentPathway as keyof typeof PATHWAYS].name} — review for Transition-Ready eligibility
             </div>
           </div>
         </div>
@@ -286,7 +292,7 @@ export default function SiteDashboard({ language, translations: t }: SiteDashboa
             <span className="text-xs text-epic-primary">vs Target</span>
           </div>
           <div className="space-y-3">
-            {Object.entries(sampleSiteData.performance).map(([key, value]) => {
+            {Object.entries(activeSiteData.performance).map(([key, value]) => {
               const status = getIndicatorStatus(key, value)
               const target = targetPositions[key]
               const shortName = INDICATOR_NAMES[key as keyof typeof INDICATOR_NAMES].split(' ')[0]
@@ -338,7 +344,7 @@ export default function SiteDashboard({ language, translations: t }: SiteDashboa
             <span className="text-xs text-epic-primary">Quarterly Trend</span>
           </div>
           <div className="flex gap-3 mb-4">
-            {sampleSiteData.supportHistory.map((s, i) => (
+            {activeSiteData.supportHistory.map((s, i) => (
               <div 
                 key={i} 
                 className={`flex-1 text-center p-3 rounded-lg ${s.current ? 'bg-epic-light-blue border-2 border-epic-primary' : 'bg-gray-50'}`}
@@ -353,7 +359,7 @@ export default function SiteDashboard({ language, translations: t }: SiteDashboa
             📉 Support decreasing as performance improves (-46% since Q2 '24)
           </div>
           <div className="mt-4 space-y-2">
-            {sampleSiteData.currentSupport.map((s, i) => (
+            {activeSiteData.currentSupport.map((s, i) => (
               <div key={i} className="flex items-center gap-3">
                 <div 
                   className="w-7 h-7 rounded-md flex items-center justify-center text-sm text-white"
@@ -376,7 +382,7 @@ export default function SiteDashboard({ language, translations: t }: SiteDashboa
           </div>
           <div className="space-y-2">
             {ROOT_CAUSES.map(rc => {
-              const data = sampleSiteData.rootCauses.find(r => r.id === rc.id)
+              const data = activeSiteData.rootCauses.find(r => r.id === rc.id)
               const status = data?.status || 'inactive'
               const colors = rootCauseColors[rc.id]
               

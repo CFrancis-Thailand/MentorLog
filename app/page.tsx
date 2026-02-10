@@ -268,6 +268,7 @@ type Tab = 'entry' | 'site' | 'district'
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>('entry')
+  const [selectedSiteId, setSelectedSiteId] = useState(null)
   const [language, setLanguage] = useState<Language>('en')
 
   const t = translations[language]
@@ -346,9 +347,9 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto p-6">
-        {activeTab === 'entry' && <QuarterlyEntry language={language} translations={t} />}
-        {activeTab === 'site' && <SiteDashboard language={language} translations={t} />}
-        {activeTab === 'district' && <DistrictDashboard language={language} translations={t} />}
+        {activeTab === 'entry' && <QuarterlyEntry language={language} translations={t} onSiteSelect={(id) => setSelectedSiteId(id)} />}
+        {activeTab === 'site' && <SiteDashboard language={language} translations={t} selectedSiteId={selectedSiteId} />}
+        {activeTab === 'district' && <DistrictDashboard language={language} translations={t} selectedSiteId={selectedSiteId} />}
       </main>
 
       {/* Footer */}
