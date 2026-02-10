@@ -6,7 +6,7 @@ import DistrictDashboard from '@/components/DistrictDashboard'
 import QuarterlyEntry from '@/components/QuarterlyEntry'
 
 // Translations
-export const translations = {
+const translations = {
   en: {
     // Header
     appName: 'MentorLog',
