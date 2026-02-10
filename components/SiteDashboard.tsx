@@ -10,7 +10,7 @@ import {
   getIndicatorStatus,
   type PerformanceStatus
 } from '@/lib/supabase'
-import { getSiteById } from '@/lib/sites'
+import { getSiteById, SITES, PROVINCES, getDistrictsByProvince, type Site } from '@/lib/sites'
 import type { Language, Translations } from '@/app/page'
 
 Chart.register(...registerables)
