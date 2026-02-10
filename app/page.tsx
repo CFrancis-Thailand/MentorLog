@@ -268,7 +268,7 @@ type Tab = 'entry' | 'site' | 'district'
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>('entry')
-  const [selectedSiteId, setSelectedSiteId] = useState(null)
+  const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null)
   const [language, setLanguage] = useState<Language>('en')
 
   const t = translations[language]
