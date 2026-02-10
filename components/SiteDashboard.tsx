@@ -123,6 +123,19 @@ const targetPositions: Record<string, number> = {
 }
 
 export default function SiteDashboard({ language, translations: t, selectedSiteId }: SiteDashboardProps) {
+  // Site selection for dashboard
+  const [dashboardSiteId, setDashboardSiteId] = useState<number>(1)
+  const dashboardSite = getSiteById(dashboardSiteId)
+  
+  // Build display data from selected site
+  const displaySiteData = dashboardSite ? {
+    ...sampleSiteData,
+    name: dashboardSite.name,
+    district: dashboardSite.district,
+    province: dashboardSite.province,
+    siteType: dashboardSite.facilityType,
+  } : sampleSiteData
+
 
   const selectedSite = selectedSiteId ? getSiteById(selectedSiteId) : null
   const activeSiteData = selectedSite ? { ...sampleSiteData, name: selectedSite.name, district: selectedSite.district, province: selectedSite.province, siteType: selectedSite.facilityType } : sampleSiteData
@@ -203,10 +216,22 @@ export default function SiteDashboard({ language, translations: t, selectedSiteI
       {/* Dashboard Header */}
       <div className="flex justify-between items-start mb-6 flex-wrap gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-epic-navy">{activeSiteData.name}</h2>
+          <div className="mb-4 flex items-center gap-3">
+              <label className="text-sm font-medium text-gray-600">Select Site:</label>
+              <select 
+                value={dashboardSiteId} 
+                onChange={(e) => setDashboardSiteId(Number(e.target.value))}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm min-w-[300px]"
+              >
+                {SITES.map(s => (
+                  <option key={s.id} value={s.id}>{s.name} — {s.district}, {s.province}</option>
+                ))}
+              </select>
+            </div>
+            <h2 className="text-3xl font-bold text-epic-navy">{displaySiteData.name}</h2>
           <div className="text-sm text-gray-500 mt-1 space-x-4">
-            <span>📍 {activeSiteData.district}, {activeSiteData.province}</span>
-            <span>🏥 {activeSiteData.siteType}</span>
+            <span>📍 {displaySiteData.district}, {displaySiteData.province}</span>
+            <span>🏥 {displaySiteData.siteType}</span>
             <span>👥 {activeSiteData.patientsOnTreatment} patients on treatment</span>
             <span>👤 Mentor: {activeSiteData.mentor}</span>
           </div>

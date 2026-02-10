@@ -116,6 +116,28 @@ const supportModalityColors: string[] = [
 ]
 
 export default function DistrictDashboard({ language, translations: t, selectedSiteId }: DistrictDashboardProps) {
+  // District selection for dashboard
+  const [selectedProvince, setSelectedProvince] = useState<string>('Jakarta')
+  const [selectedDistrictName, setSelectedDistrictName] = useState<string>('South Jakarta')
+  
+  const availableDistricts = getDistrictsByProvince(selectedProvince)
+  const districtSitesList = SITES.filter(s => s.district === selectedDistrictName)
+  const districtPuskesmasCount = districtSitesList.filter(s => s.facilityType === 'Puskesmas').length
+  const districtHospitalCount = districtSitesList.filter(s => s.facilityType === 'Hospital').length
+  const districtNGOCount = districtSitesList.filter(s => s.facilityType === 'NGO clinic').length
+  
+  const displayDistrictData = {
+    ...sampleDistrictData,
+    name: selectedDistrictName + ' District',
+    province: selectedProvince,
+    totalSites: districtSitesList.length,
+    sitesByType: {
+      puskesmas: districtPuskesmasCount,
+      hospital: districtHospitalCount,
+      private: districtNGOCount,
+    }
+  }
+
 
   const selectedSite = selectedSiteId ? getSiteById(selectedSiteId) : null
   const districtSites = selectedSite ? SITES.filter(s => s.district === selectedSite.district) : []
@@ -209,9 +231,36 @@ export default function DistrictDashboard({ language, translations: t, selectedS
     <div className="max-w-7xl mx-auto p-6">
       {/* Dashboard Header */}
       <div className="mb-6">
-        <h2 className="text-3xl font-bold text-epic-navy">{activeDistrictData.name}</h2>
+        <div className="mb-4 flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-600">Province:</label>
+                <select 
+                  value={selectedProvince}
+                  onChange={(e) => { setSelectedProvince(e.target.value); setSelectedDistrictName('') }}
+                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm"
+                >
+                  {PROVINCES.map(p => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-600">District:</label>
+                <select 
+                  value={selectedDistrictName}
+                  onChange={(e) => setSelectedDistrictName(e.target.value)}
+                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm min-w-[200px]"
+                >
+                  <option value="">Select district...</option>
+                  {availableDistricts.map(d => (
+                    <option key={d} value={d}>{d} ({SITES.filter(s => s.district === d).length} sites)</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <h2 className="text-3xl font-bold text-epic-navy">{displayDistrictData.name}</h2>
         <div className="text-sm text-gray-500 mt-1 space-x-4">
-          <span>📍 {activeDistrictData.province} Province</span>
+          <span>📍 {displayDistrictData.province} Province</span>
           <span>📅 {activeDistrictData.currentQuarter}</span>
         </div>
       </div>
@@ -221,12 +270,12 @@ export default function DistrictDashboard({ language, translations: t, selectedS
         <div className="col-span-12 lg:col-span-3 bg-white rounded-xl p-5 shadow-sm">
           <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Sites</span>
           <div className="text-center mt-4">
-            <div className="text-5xl font-bold text-epic-navy">{activeDistrictData.totalSites}</div>
+            <div className="text-5xl font-bold text-epic-navy">{displayDistrictData.totalSites}</div>
             <div className="text-sm text-gray-500 mt-1">Active Facilities</div>
             <div className="flex justify-center gap-4 mt-3 text-xs text-gray-500">
-              <span>🏥 {activeDistrictData.sitesByType.puskesmas} Puskesmas</span>
-              <span>🏨 {activeDistrictData.sitesByType.hospital} Hospital</span>
-              <span>🏢 {activeDistrictData.sitesByType.private} Private</span>
+              <span>🏥 {displayDistrictData.sitesByType.puskesmas} Puskesmas</span>
+              <span>🏨 {displayDistrictData.sitesByType.hospital} Hospital</span>
+              <span>🏢 {displayDistrictData.sitesByType.private} Private</span>
             </div>
           </div>
         </div>
@@ -243,7 +292,7 @@ export default function DistrictDashboard({ language, translations: t, selectedS
                   stroke="url(#gradient-effective)" strokeWidth="10"
                   strokeLinecap="round"
                   strokeDasharray="339"
-                  strokeDashoffset={339 - (339 * activeDistrictData.sitesMeetingTarget / activeDistrictData.totalSites)}
+                  strokeDashoffset={339 - (339 * activeDistrictData.sitesMeetingTarget / displayDistrictData.totalSites)}
                 />
                 <defs>
                   <linearGradient id="gradient-effective" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -254,7 +303,7 @@ export default function DistrictDashboard({ language, translations: t, selectedS
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <div className="text-3xl font-bold text-epic-navy">{activeDistrictData.sitesMeetingTarget}</div>
-                <div className="text-xs text-gray-500">of {activeDistrictData.totalSites} sites</div>
+                <div className="text-xs text-gray-500">of {displayDistrictData.totalSites} sites</div>
               </div>
             </div>
           </div>
@@ -268,7 +317,7 @@ export default function DistrictDashboard({ language, translations: t, selectedS
           <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Sites by Technical Support Pathway</span>
           <div className="mt-4 space-y-2.5">
             {Object.entries(activeDistrictData.pathwayDistribution).map(([key, count]) => {
-              const pct = (count / activeDistrictData.totalSites) * 100
+              const pct = (count / displayDistrictData.totalSites) * 100
               return (
                 <div key={key} className="flex items-center gap-3">
                   <span 
