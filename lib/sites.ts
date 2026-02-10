@@ -159,7 +159,7 @@ export const SITES: Site[] = [
 ]
 
 // Get unique provinces
-export const PROVINCES = [...new Set(SITES.map(s => s.province))].sort()
+export const PROVINCES = Array.from(new Set(SITES.map(s => s.province))).sort()
 
 // Get districts by province
 export const getDistrictsByProvince = (province: string): string[] => {
