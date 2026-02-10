@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Chart, registerables } from 'chart.js'
 import { PATHWAYS, ROOT_CAUSES } from '@/lib/supabase'
-import { getSiteById, SITES } from '@/lib/sites'
+import { getSiteById, SITES, PROVINCES, getDistrictsByProvince } from '@/lib/sites'
 import type { Language, Translations } from '@/app/page'
 
 Chart.register(...registerables)
