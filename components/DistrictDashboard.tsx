@@ -25,7 +25,7 @@ const sampleDistrictData = {
     hospital: 4,
     private: 2,
   },
-  sitesMeetingTarget: 16, // ≥4 indicators at optimal/effective
+  sitesMeetingTarget: 16,
   changeFromLastQuarter: 3,
   pathwayDistribution: {
     'prioritization': 6,
@@ -46,11 +46,11 @@ const sampleDistrictData = {
     totalHours: 87.5,
     totalVisits: 42,
     byModality: [
-      { name: 'Face-to-face', hours: 48 },
-      { name: 'Remote', hours: 18 },
-      { name: 'Data Review', hours: 12 },
-      { name: 'Training', hours: 6 },
-      { name: 'Other', hours: 3.5 },
+      { id: 'face-to-face', hours: 48 },
+      { id: 'remote', hours: 18 },
+      { id: 'data-review', hours: 12 },
+      { id: 'training', hours: 6 },
+      { id: 'other', hours: 3.5 },
     ],
   },
   rootCauseCounts: [
@@ -72,6 +72,7 @@ const sampleDistrictData = {
     {
       indicator: '5.1',
       indicatorName: 'Multi-Month Dispensing (MMD)',
+      indicatorNameId: 'Dispensing Multi-Bulan (MMD)',
       siteType: 'hospital',
       pctSubOptimal: 100,
       affectedSites: [
@@ -80,7 +81,8 @@ const sampleDistrictData = {
         { name: 'RS Harapan Kita', value: 45 },
         { name: 'RS Budhi Asih', value: 35 },
       ],
-      description: 'All 4 hospitals (100%) are performing below Effective threshold on MMD. This suggests a systemic barrier — likely supply chain or policy implementation — requiring provincial-level coordination.',
+      descriptionEn: 'All 4 hospitals (100%) are performing below Effective threshold on MMD. This suggests a systemic barrier — likely supply chain or policy implementation — requiring provincial-level coordination.',
+      descriptionId: 'Semua 4 rumah sakit (100%) berkinerja di bawah ambang batas Efektif pada MMD. Ini menunjukkan hambatan sistemik — kemungkinan rantai pasok atau implementasi kebijakan — yang membutuhkan koordinasi tingkat provinsi.',
     },
   ],
 }
@@ -96,23 +98,23 @@ const pathwayColors: Record<string, string> = {
 
 // ROOT CAUSE COLORS - Purples palette (challenges)
 const rootCauseColors: string[] = [
-  '#6A1B9A',  // staffing - darkest
-  '#7B1FA2',  // capacity
-  '#8E24AA',  // me-data
-  '#9C27B0',  // supply-chain
-  '#AB47BC',  // service-delivery
-  '#BA68C8',  // patient-factors
-  '#CE93D8',  // policy-sops
-  '#E1BEE7',  // leadership - lightest
+  '#6A1B9A',
+  '#7B1FA2',
+  '#8E24AA',
+  '#9C27B0',
+  '#AB47BC',
+  '#BA68C8',
+  '#CE93D8',
+  '#E1BEE7',
 ]
 
 // SUPPORT MODALITY COLORS - Teals palette (helping activities)
 const supportModalityColors: string[] = [
-  '#00695C',  // face-to-face
-  '#00897B',  // remote
-  '#26A69A',  // data-review
-  '#4DB6AC',  // training
-  '#80CBC4',  // other
+  '#00695C',
+  '#00897B',
+  '#26A69A',
+  '#4DB6AC',
+  '#80CBC4',
 ]
 
 export default function DistrictDashboard({ language, translations: t, selectedSiteId }: DistrictDashboardProps) {
@@ -128,7 +130,7 @@ export default function DistrictDashboard({ language, translations: t, selectedS
   
   const displayDistrictData = {
     ...sampleDistrictData,
-    name: selectedDistrictName + ' District',
+    name: selectedDistrictName + (language === 'id' ? '' : ' District'),
     province: selectedProvince,
     totalSites: districtSitesList.length,
     sitesByType: {
@@ -138,10 +140,58 @@ export default function DistrictDashboard({ language, translations: t, selectedS
     }
   }
 
-
   const selectedSite = selectedSiteId ? getSiteById(selectedSiteId) : null
   const districtSites = selectedSite ? SITES.filter(s => s.district === selectedSite.district) : []
-  const activeDistrictData = selectedSite ? { ...sampleDistrictData, name: selectedSite.district + " District", province: selectedSite.province, totalSites: districtSites.length, sitesByType: { puskesmas: districtSites.filter(s => s.facilityType === "Puskesmas").length, hospital: districtSites.filter(s => s.facilityType === "Hospital").length, private: districtSites.filter(s => s.facilityType === "NGO clinic").length } } : sampleDistrictData
+  const activeDistrictData = selectedSite ? { ...sampleDistrictData, name: selectedSite.district + (language === 'id' ? '' : ' District'), province: selectedSite.province, totalSites: districtSites.length, sitesByType: { puskesmas: districtSites.filter(s => s.facilityType === "Puskesmas").length, hospital: districtSites.filter(s => s.facilityType === "Hospital").length, private: districtSites.filter(s => s.facilityType === "NGO clinic").length } } : sampleDistrictData
+
+  // Translation helper functions
+  const getPathwayName = (key: string) => {
+    const map: Record<string, keyof Translations> = {
+      'prioritization': 'prioritization',
+      'rationalization': 'rationalization',
+      'transition-ready': 'transitionReady',
+      'graduation': 'graduation',
+      're-engagement': 'reengagement',
+    }
+    return t[map[key]] || key
+  }
+
+  const getRootCauseName = (id: string) => {
+    const map: Record<string, keyof Translations> = {
+      'staffing': 'staffing',
+      'capacity': 'capacity',
+      'me-data': 'meData',
+      'supply-chain': 'supplyChain',
+      'policy-sops': 'policySops',
+      'service-delivery': 'serviceDelivery',
+      'patient-factors': 'patientFactors',
+      'leadership': 'leadership',
+    }
+    return t[map[id]] || id
+  }
+
+  const getModalityName = (id: string) => {
+    const map: Record<string, keyof Translations> = {
+      'face-to-face': 'faceToFaceShort',
+      'remote': 'remoteShort',
+      'data-review': 'dataReviewShort',
+      'training': 'trainingShort',
+      'other': 'otherShort',
+    }
+    return t[map[id]] || id
+  }
+
+  const getFacilityTypeLabel = (type: string) => {
+    if (language === 'id') {
+      const map: Record<string, string> = {
+        'Puskesmas': 'Puskesmas',
+        'Hospital': 'Rumah Sakit',
+        'Private': 'Swasta',
+      }
+      return map[type] || type
+    }
+    return type
+  }
 
   const donutRef = useRef<HTMLCanvasElement>(null)
   const barRef = useRef<HTMLCanvasElement>(null)
@@ -156,7 +206,7 @@ export default function DistrictDashboard({ language, translations: t, selectedS
       donutInstance.current = new Chart(donutRef.current, {
         type: 'doughnut',
         data: {
-          labels: activeDistrictData.supportDelivered.byModality.map(m => m.name),
+          labels: activeDistrictData.supportDelivered.byModality.map(m => getModalityName(m.id)),
           datasets: [{
             data: activeDistrictData.supportDelivered.byModality.map(m => m.hours),
             backgroundColor: supportModalityColors,
@@ -184,9 +234,7 @@ export default function DistrictDashboard({ language, translations: t, selectedS
       barInstance.current = new Chart(barRef.current, {
         type: 'bar',
         data: {
-          labels: activeDistrictData.rootCauseCounts.map(r => 
-            ROOT_CAUSES.find(rc => rc.id === r.id)?.name || r.id
-          ),
+          labels: activeDistrictData.rootCauseCounts.map(r => getRootCauseName(r.id)),
           datasets: [{
             data: activeDistrictData.rootCauseCounts.map(r => r.count),
             backgroundColor: rootCauseColors,
@@ -201,7 +249,7 @@ export default function DistrictDashboard({ language, translations: t, selectedS
             legend: { display: false },
             tooltip: {
               callbacks: {
-                label: (context) => context.raw + ' sites affected',
+                label: (context) => context.raw + ' ' + (t.sitesAffected || 'sites affected'),
               },
             },
           },
@@ -225,7 +273,7 @@ export default function DistrictDashboard({ language, translations: t, selectedS
       if (donutInstance.current) donutInstance.current.destroy()
       if (barInstance.current) barInstance.current.destroy()
     }
-  }, [])
+  }, [language])
 
   return (
     <div className="max-w-7xl mx-auto p-6">
@@ -233,7 +281,7 @@ export default function DistrictDashboard({ language, translations: t, selectedS
       <div className="mb-6">
         <div className="mb-4 flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-gray-600">Province:</label>
+                <label className="text-sm font-medium text-gray-600">{t.province || 'Province'}:</label>
                 <select 
                   value={selectedProvince}
                   onChange={(e) => { setSelectedProvince(e.target.value); setSelectedDistrictName('') }}
@@ -245,22 +293,22 @@ export default function DistrictDashboard({ language, translations: t, selectedS
                 </select>
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-gray-600">District:</label>
+                <label className="text-sm font-medium text-gray-600">{t.district || 'District'}:</label>
                 <select 
                   value={selectedDistrictName}
                   onChange={(e) => setSelectedDistrictName(e.target.value)}
                   className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm min-w-[200px]"
                 >
-                  <option value="">Select district...</option>
+                  <option value="">{language === 'id' ? 'Pilih kabupaten...' : 'Select district...'}</option>
                   {availableDistricts.map(d => (
-                    <option key={d} value={d}>{d} ({SITES.filter(s => s.district === d).length} sites)</option>
+                    <option key={d} value={d}>{d} ({SITES.filter(s => s.district === d).length} {t.sites || 'sites'})</option>
                   ))}
                 </select>
               </div>
             </div>
             <h2 className="text-3xl font-bold text-epic-navy">{displayDistrictData.name}</h2>
         <div className="text-sm text-gray-500 mt-1 space-x-4">
-          <span>📍 {displayDistrictData.province} Province</span>
+          <span>📍 {language === 'id' ? 'Provinsi' : ''} {displayDistrictData.province} {language === 'en' ? 'Province' : ''}</span>
           <span>📅 {activeDistrictData.currentQuarter}</span>
         </div>
       </div>
@@ -268,21 +316,21 @@ export default function DistrictDashboard({ language, translations: t, selectedS
       <div className="grid grid-cols-12 gap-5">
         {/* Total Sites */}
         <div className="col-span-12 lg:col-span-3 bg-white rounded-xl p-5 shadow-sm">
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Sites</span>
+          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.totalSites || 'Total Sites'}</span>
           <div className="text-center mt-4">
             <div className="text-5xl font-bold text-epic-navy">{displayDistrictData.totalSites}</div>
-            <div className="text-sm text-gray-500 mt-1">Active Facilities</div>
+            <div className="text-sm text-gray-500 mt-1">{t.activeFacilities || 'Active Facilities'}</div>
             <div className="flex justify-center gap-4 mt-3 text-xs text-gray-500">
-              <span>🏥 {displayDistrictData.sitesByType.puskesmas} Puskesmas</span>
-              <span>🏨 {displayDistrictData.sitesByType.hospital} Hospital</span>
-              <span>🏢 {displayDistrictData.sitesByType.private} Private</span>
+              <span>🏥 {displayDistrictData.sitesByType.puskesmas} {getFacilityTypeLabel('Puskesmas')}</span>
+              <span>🏨 {displayDistrictData.sitesByType.hospital} {getFacilityTypeLabel('Hospital')}</span>
+              <span>🏢 {displayDistrictData.sitesByType.private} {getFacilityTypeLabel('Private')}</span>
             </div>
           </div>
         </div>
 
         {/* Sites Meeting Target */}
         <div className="col-span-12 lg:col-span-3 bg-white rounded-xl p-5 shadow-sm">
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Sites Meeting ≥4 Indicators</span>
+          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.sitesMeetingIndicators || 'Sites Meeting ≥4 Indicators'}</span>
           <div className="flex items-center justify-center mt-4">
             <div className="relative w-32 h-32">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 130 130">
@@ -303,18 +351,18 @@ export default function DistrictDashboard({ language, translations: t, selectedS
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <div className="text-3xl font-bold text-epic-navy">{activeDistrictData.sitesMeetingTarget}</div>
-                <div className="text-xs text-gray-500">of {displayDistrictData.totalSites} sites</div>
+                <div className="text-xs text-gray-500">{language === 'id' ? 'dari' : 'of'} {displayDistrictData.totalSites} {t.sites || 'sites'}</div>
               </div>
             </div>
           </div>
           <div className="flex items-center justify-center gap-1 mt-3 text-sm font-semibold text-status-optimal">
-            <span>▲</span> +{activeDistrictData.changeFromLastQuarter} sites from Q4 2024
+            <span>▲</span> +{activeDistrictData.changeFromLastQuarter} {t.sites || 'sites'} {t.fromPrevQuarterShort || 'from'} Q4 2024
           </div>
         </div>
 
         {/* Pathway Distribution */}
         <div className="col-span-12 lg:col-span-6 bg-white rounded-xl p-5 shadow-sm">
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Sites by Technical Support Pathway</span>
+          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.sitesByPathway || 'Sites by Technical Support Pathway'}</span>
           <div className="mt-4 space-y-2.5">
             {Object.entries(activeDistrictData.pathwayDistribution).map(([key, count]) => {
               const pct = (count / displayDistrictData.totalSites) * 100
@@ -324,7 +372,7 @@ export default function DistrictDashboard({ language, translations: t, selectedS
                     className="w-28 text-xs font-semibold"
                     style={{ color: pathwayColors[key] }}
                   >
-                    {PATHWAYS[key as keyof typeof PATHWAYS].name}
+                    {getPathwayName(key)}
                   </span>
                   <div className="flex-1 h-6 bg-gray-100 rounded-md overflow-hidden">
                     <div 
@@ -346,7 +394,7 @@ export default function DistrictDashboard({ language, translations: t, selectedS
 
         {/* Performance by Indicator */}
         <div className="col-span-12 lg:col-span-7 bg-white rounded-xl p-5 shadow-sm">
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Site Distribution by Indicator Performance</span>
+          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.siteDistributionByIndicator || 'Site Distribution by Indicator Performance'}</span>
           <div className="mt-4 space-y-4">
             {Object.entries(activeDistrictData.indicatorDistribution).map(([key, data]) => (
               <div key={key} className="flex items-center gap-3">
@@ -382,35 +430,35 @@ export default function DistrictDashboard({ language, translations: t, selectedS
             ))}
           </div>
           <div className="flex justify-center gap-5 mt-4 text-xs flex-wrap">
-            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-status-optimal"></div> Optimal</div>
-            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-status-effective"></div> Effective</div>
-            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-status-improving"></div> Improving</div>
-            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-status-stressed"></div> Stressed</div>
-            <span className="text-gray-400 italic ml-2">% = sites at Optimal/Effective</span>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-status-optimal"></div> {t.optimal || 'Optimal'}</div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-status-effective"></div> {t.effective || 'Effective'}</div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-status-improving"></div> {t.improving || 'Improving'}</div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-status-stressed"></div> {t.stressed || 'Stressed'}</div>
+            <span className="text-gray-400 italic ml-2">{t.sitesAtOptimalEffective || '% = sites at Optimal/Effective'}</span>
           </div>
         </div>
 
         {/* Support Delivered */}
         <div className="col-span-12 lg:col-span-5 bg-white rounded-xl p-5 shadow-sm">
           <div className="flex justify-between items-center mb-4">
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Technical Support Delivered</span>
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.technicalSupportDelivered || 'Technical Support Delivered'}</span>
             <span className="text-xs text-epic-primary">{activeDistrictData.currentQuarter}</span>
           </div>
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="text-center p-4 bg-gray-50 rounded-lg">
               <div className="text-3xl font-bold text-epic-navy">{activeDistrictData.supportDelivered.totalHours}</div>
-              <div className="text-xs text-gray-500">Total Hours</div>
+              <div className="text-xs text-gray-500">{t.totalHours || 'Total Hours'}</div>
             </div>
             <div className="text-center p-4 bg-gray-50 rounded-lg">
               <div className="text-3xl font-bold text-epic-navy">{activeDistrictData.supportDelivered.totalVisits}</div>
-              <div className="text-xs text-gray-500">Total Visits</div>
+              <div className="text-xs text-gray-500">{t.totalVisits || 'Total Visits'}</div>
             </div>
           </div>
           <div className="relative h-44">
             <canvas ref={donutRef}></canvas>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
               <div className="text-2xl font-bold text-epic-navy">{activeDistrictData.supportDelivered.totalHours}</div>
-              <div className="text-xs text-gray-500">hours</div>
+              <div className="text-xs text-gray-500">{t.hours || 'hours'}</div>
             </div>
           </div>
         </div>
@@ -418,8 +466,8 @@ export default function DistrictDashboard({ language, translations: t, selectedS
         {/* Root Causes */}
         <div className="col-span-12 lg:col-span-6 bg-white rounded-xl p-5 shadow-sm">
           <div className="flex justify-between items-center mb-4">
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Common Root Causes</span>
-            <span className="text-xs text-epic-primary">Sites Affected</span>
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.commonRootCauses || 'Common Root Causes'}</span>
+            <span className="text-xs text-epic-primary">{t.sitesAffected || 'Sites Affected'}</span>
           </div>
           <div className="h-64">
             <canvas ref={barRef}></canvas>
@@ -428,7 +476,7 @@ export default function DistrictDashboard({ language, translations: t, selectedS
 
         {/* Mentors */}
         <div className="col-span-12 lg:col-span-6 bg-white rounded-xl p-5 shadow-sm">
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Mentor Activity</span>
+          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.mentorActivity || 'Mentor Activity'}</span>
           <div className="grid grid-cols-3 gap-4 mt-4">
             {activeDistrictData.mentors.map((m, i) => (
               <div key={i} className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
@@ -437,10 +485,10 @@ export default function DistrictDashboard({ language, translations: t, selectedS
                 </div>
                 <div>
                   <div className="text-sm font-semibold text-epic-navy">{m.name}</div>
-                  <div className="text-[10px] text-gray-500">District Mentor</div>
+                  <div className="text-[10px] text-gray-500">{t.districtMentor || 'District Mentor'}</div>
                   <div className="flex gap-3 mt-1 text-xs">
-                    <span><strong>{m.sites}</strong> sites</span>
-                    <span><strong>{m.hours}</strong> hrs</span>
+                    <span><strong>{m.sites}</strong> {t.sites || 'sites'}</span>
+                    <span><strong>{m.hours}</strong> {t.hrs || 'hrs'}</span>
                   </div>
                 </div>
               </div>
@@ -451,13 +499,16 @@ export default function DistrictDashboard({ language, translations: t, selectedS
         {/* Escalations */}
         <div className="col-span-12 bg-white rounded-xl p-5 shadow-sm">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">System-Level Escalations</span>
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.systemLevelEscalations || 'System-Level Escalations'}</span>
             <span className="px-2.5 py-1 bg-amber-500 text-white text-xs font-semibold rounded-full">
-              {activeDistrictData.escalations.length} Active
+              {activeDistrictData.escalations.length} {t.active || 'Active'}
             </span>
           </div>
           <p className="text-xs text-gray-500 mb-4">
-            Escalations trigger when &gt;75% of sites within a facility type perform sub-optimally on a specific indicator
+            {language === 'id' 
+              ? 'Eskalasi dipicu ketika >75% fasilitas dalam satu jenis fasilitas berkinerja sub-optimal pada indikator tertentu'
+              : 'Escalations trigger when >75% of sites within a facility type perform sub-optimally on a specific indicator'
+            }
           </p>
           
           {activeDistrictData.escalations.map((esc, i) => (
@@ -465,13 +516,15 @@ export default function DistrictDashboard({ language, translations: t, selectedS
               <div className="flex items-center gap-3 mb-2">
                 <span className="text-xl">⚠️</span>
                 <span className="font-bold text-amber-700">
-                  Indicator {esc.indicator}: {esc.indicatorName}
+                  {language === 'id' ? 'Indikator' : 'Indicator'} {esc.indicator}: {language === 'id' ? esc.indicatorNameId : esc.indicatorName}
                 </span>
                 <span className="ml-auto px-2.5 py-1 bg-amber-500 text-white text-xs font-semibold rounded">
-                  Hospitals: {esc.pctSubOptimal}% sub-optimal
+                  {language === 'id' ? 'Rumah Sakit' : 'Hospitals'}: {esc.pctSubOptimal}% {t.subOptimal || 'sub-optimal'}
                 </span>
               </div>
-              <p className="text-sm text-epic-navy leading-relaxed mb-3">{esc.description}</p>
+              <p className="text-sm text-epic-navy leading-relaxed mb-3">
+                {language === 'id' ? esc.descriptionId : esc.descriptionEn}
+              </p>
               <div className="flex flex-wrap gap-2">
                 {esc.affectedSites.map((site, j) => (
                   <span key={j} className="px-2.5 py-1 bg-white rounded text-xs font-medium text-epic-navy border border-amber-200">
