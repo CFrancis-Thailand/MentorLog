@@ -32,18 +32,18 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: 'linear-gradient(to bottom, #f0f4f8, #dbe4ee)' }}>
       {/* Main Card */}
       <div className="w-full max-w-md">
         {/* App Name & Description */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-slate-800 mb-2">
+          <h1 className="text-4xl font-bold mb-2" style={{ color: '#1B365D' }}>
             MentorLog
           </h1>
-          <p className="text-sm text-slate-500 mb-4 italic">
+          <p className="text-sm mb-4 italic" style={{ color: '#4472C4' }}>
             Catatan Pendamping
           </p>
-          <p className="text-slate-600 text-sm leading-relaxed">
+          <p className="text-sm leading-relaxed" style={{ color: '#3B5068' }}>
             WhatsApp + web platform for tracking mentorship and site performance
             in Indonesia&apos;s HIV program. Supports the Sustainable Excellence
             framework for transitioning facilities from intensive support to
@@ -53,7 +53,7 @@ export default function LoginPage() {
 
         {/* Login Form */}
         <div className="bg-white rounded-xl shadow-lg p-8">
-          <h2 className="text-lg font-semibold text-slate-700 mb-6 text-center">
+          <h2 className="text-lg font-semibold mb-6 text-center" style={{ color: '#1B365D' }}>
             Sign In
           </h2>
 
@@ -61,7 +61,8 @@ export default function LoginPage() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-slate-600 mb-1"
+                className="block text-sm font-medium mb-1"
+                style={{ color: '#3B5068' }}
               >
                 Email
               </label>
@@ -72,14 +73,16 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your.email@fhi360.org"
                 required
-                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-700 placeholder-slate-400"
+                className="w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent text-slate-700 placeholder-slate-400"
+                style={{ borderColor: '#b0c4d8' }}
               />
             </div>
 
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-slate-600 mb-1"
+                className="block text-sm font-medium mb-1"
+                style={{ color: '#3B5068' }}
               >
                 Password
               </label>
@@ -90,12 +93,13 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
                 required
-                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-700 placeholder-slate-400"
+                className="w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent text-slate-700 placeholder-slate-400"
+                style={{ borderColor: '#b0c4d8' }}
               />
             </div>
 
             {error && (
-              <div className="bg-red-50 text-red-600 text-sm px-4 py-2.5 rounded-lg">
+              <div className="text-sm px-4 py-2.5 rounded-lg" style={{ backgroundColor: '#fdecea', color: '#c00000' }}>
                 {error}
               </div>
             )}
@@ -103,32 +107,35 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full text-white font-medium py-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ backgroundColor: '#1B365D' }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#2B5C8A')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#1B365D')}
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
         </div>
 
-        {/* Logos */}
+        {/* Logos - US on left, EpiC on right */}
         <div className="mt-10 flex items-center justify-center gap-8">
           <Image
-            src="/epic-logo.png"
-            alt="EpiC - Meeting Targets and Maintaining Epidemic Control"
+            src="/DOS Logo (1).png"
+            alt="United States of America"
             width={200}
             height={60}
             className="object-contain"
           />
           <Image
-            src="/dos-logo.png"
-            alt="United States of America"
+            src="/EpiC Logo (1).png"
+            alt="EpiC - Meeting Targets and Maintaining Epidemic Control"
             width={200}
             height={60}
             className="object-contain"
           />
         </div>
 
-        <p className="text-center text-xs text-slate-400 mt-6">
+        <p className="text-center text-xs mt-6" style={{ color: '#8497B0' }}>
           © {new Date().getFullYear()} FHI 360 — EpiC Indonesia
         </p>
       </div>
